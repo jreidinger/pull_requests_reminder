@@ -6,8 +6,8 @@ require "ostruct"
 
 def usage
 <<-END
-  #{$0} <github organization> <email address>
-  Tool to inform about pending pull request of given organization
+  #{$0} <github organization>
+  Tool to print report about pending pull request of given organization
 END
 end
 
@@ -68,13 +68,12 @@ end
 
 
 
-if ARGV.size < 2
+if ARGV.size < 1
   print_usage
   exit 1
 end
 
 organization  = ARGV[0]
-email_address = ARGV[1]
 
 repos = Repository.all(organization)
 repos.select!(&:any_pull_requests?)
