@@ -40,7 +40,6 @@ class Repository < OpenStruct
 private
   def self.load_part(organization, part)
     url = "https://api.github.com/orgs/#{organization}/repos?page=#{part}"
-    puts url
     open(url) do |f|
       repos = JSON.load(f.gets)
       return repos.map{ |r| Repository.new(r) }
@@ -93,13 +92,13 @@ repos.each do |repo|
   end
   next if pull_requests.empty?
 
-  msg = "Pending requests in repository #{repo.name}:\n"
+  msg = "\nPending requests in repository #{repo.name}:\n"
   pull_requests.reduce(msg) do |msg, pr|
     msg << "  #{pr.html_url}\n"
   end
 
   #visual splitter
-  msg << "\n\n"
+  msg << "\n"
 
   result_message << msg
 end
