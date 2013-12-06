@@ -82,7 +82,7 @@ repos.each do |repo|
   begin
     pull_requests = PullRequest.all(repo)
   rescue OpenURI::HTTPError
-    msg << "\n\n ERROR: API query limit exceeded"
+    result_message << "\n\n ERROR: API query limit exceeded"
     break
   end
   pull_requests.select! do |pr|
