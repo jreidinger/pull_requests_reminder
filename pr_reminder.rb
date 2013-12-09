@@ -94,12 +94,11 @@ repos.each do |repo|
 
   msg = "\nPending requests in repository #{repo.name}:\n"
   pull_requests.reduce(msg) do |msg, pr|
-    msg << "  #{pr.html_url}\n"
+    msg << "  - #{pr.title}\n"
+    msg << "    #{pr.html_url}\n\n"
   end
 
   #visual splitter
-  msg << "\n"
-
   result_message << msg
 end
 
