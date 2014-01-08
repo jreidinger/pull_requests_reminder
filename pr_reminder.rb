@@ -60,8 +60,12 @@ class PullRequest < OpenStruct
     @updated ||= Time.parse(updated_at)
   end
 
-  def pending_days?(days)
-    (Time.now - updated) > days*24*3600
+  def pending_more_then?(days)
+    pending_days > days
+  end
+
+  def pending_days
+    ((Time.now - updated)/24/3600).floor
   end
 end
 
@@ -88,13 +92,13 @@ repos.each do |repo|
   pull_requests.select! do |pr|
     # do not count weekend in pending time
     days = (Time.now.monday? || Time.now.tuesday?) ? 5 : 3
-    pr.pending_days? days
+    pr.pending_more_then? days
   end
   next if pull_requests.empty?
 
   msg = "\nPending requests in repository #{repo.name}:\n"
   pull_requests.reduce(msg) do |msg, pr|
-    msg << "  - #{pr.title}\n"
+    msg << "  - #{pr.title} (#{pr.pending_days} days)\n"
     msg << "    #{pr.html_url}\n\n"
   end
 
