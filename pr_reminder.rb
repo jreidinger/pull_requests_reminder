@@ -6,13 +6,18 @@ require "ostruct"
 
 def usage
 <<-END
-  #{$0} <github organization>
+  #{$0} <github organization> [repo-name-1] [repo-name-2] ...  [repo-name-n]
   Tool to print report about pending pull request of given organization
 END
 end
 
 def print_usage
   $stdout.puts usage
+end
+
+if ARGV.empty?
+  print_usage
+  exit 1
 end
 
 class Repository < OpenStruct
@@ -69,16 +74,12 @@ class PullRequest < OpenStruct
   end
 end
 
-
-
-if ARGV.size < 1
-  print_usage
-  exit 1
-end
-
-organization  = ARGV[0]
-
+organization = ARGV[0]
 repos = Repository.all(organization)
+if ARGV.size > 1
+  reponames = ARGV[1, ARGV.size]
+  repos.select! { |repo| reponames.include?(repo.name) }
+end
 repos.select!(&:any_pull_requests?)
 
 result_message = ""
