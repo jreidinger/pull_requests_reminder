@@ -3,6 +3,50 @@ require 'open-uri'
 require 'json'
 require 'ostruct'
 
+class GitHubAPI
+  @@api_token_file = File.expand_path(File.dirname(__FILE__)) + "/api_token"
+  @@api_token = nil
+
+  def self.token
+    if !@@api_token
+      if File.exists?(@@api_token_file)
+        @@api_token = File.open(@@api_token_file).read.gsub("\n", "")
+      end
+    end
+
+    @@api_token
+  end
+
+  def self.load_repos_in_page(organization, page)
+    url = "https://api.github.com/orgs/#{organization}/repos?page=#{page}&per_page=100"
+
+    if self.token
+      url += "&access_token=#{self.token}"
+    end
+
+    open(url) do |json_file|
+      JSON.load(json_file.gets).map { |repo_data| Repository.new(repo_data) }
+    end
+  end
+
+  def self.pending_pull_requests(repository)
+    pull_requests = []
+    url = "https://api.github.com/repos/#{repository}/pulls"
+
+    if self.token
+      url += "?access_token=#{self.token}"
+    end
+
+    open(url) do |json_file|
+      pull_requests = JSON.load(json_file.gets).map { |pr_data| PullRequest.new(pr_data) }
+    end
+    pull_requests.select do |pull_request|
+      days = (Time.now.monday? || Time.now.tuesday?) ? 5 : 3 # do not count weekend in pending time
+      pull_request.pending_days > days
+    end
+  end
+end
+
 # Represents an Organization in GitHub
 class Organization
   attr_reader :name
@@ -30,25 +74,14 @@ class Organization
 
   # Load repositories in the page from GitHub
   def load_repos_in_page(page)
-    url = "https://api.github.com/orgs/#{name}/repos?page=#{page}&per_page=100"
-    open(url) do |json_file|
-      JSON.load(json_file.gets).map { |repo_data| Repository.new(repo_data) }
-    end
+    GitHubAPI.load_repos_in_page(name, page)
   end
 end
 
 # Represents a Repository in GitHub
 class Repository < OpenStruct
   def pending_pull_requests
-    pull_requests = []
-    url = "https://api.github.com/repos/#{full_name}/pulls"
-    open(url) do |json_file|
-      pull_requests = JSON.load(json_file.gets).map { |pr_data| PullRequest.new(pr_data) }
-    end
-    pull_requests.select do |pull_request|
-      days = (Time.now.monday? || Time.now.tuesday?) ? 5 : 3 # do not count weekend in pending time
-      pull_request.pending_days > days
-    end
+    GitHubAPI.pending_pull_requests(full_name)
   end
 
   def any_pull_requests?
