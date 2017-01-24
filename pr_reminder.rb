@@ -9,7 +9,9 @@ class GitHubAPI
 
   def self.token
     if !@@api_token
-      if File.exists?(@@api_token_file)
+      if ENV['GH_API_TOKEN']
+        @@api_token = ENV['GH_API_TOKEN']
+      elsif File.exists?(@@api_token_file)
         @@api_token = File.open(@@api_token_file).read.gsub("\n", "")
       end
     end
