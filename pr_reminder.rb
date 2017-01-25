@@ -40,12 +40,31 @@ class GitHubAPI
     end
 
     open(url) do |json_file|
-      pull_requests = JSON.load(json_file.gets).map { |pr_data| PullRequest.new(pr_data) }
+      pull_requests = JSON.load(json_file.gets).map { |pr_data|
+        issue = self.issue_details(repository, pr_data["number"])
+        PullRequest.new(issue)
+      }
     end
+
     pull_requests.select do |pull_request|
       days = (Time.now.monday? || Time.now.tuesday?) ? 5 : 3 # do not count weekend in pending time
       pull_request.pending_days > days
     end
+  end
+
+  def self.issue_details(repository, issue_id)
+    issue_data = nil
+    url = "https://api.github.com/repos/#{repository}/issues/#{issue_id}"
+
+    if self.token
+      url += "?access_token=#{self.token}"
+    end
+
+    open(url) do |json_file|
+      issue_data = JSON.load(json_file)
+    end
+
+    issue_data
   end
 end
 
@@ -118,7 +137,7 @@ if ARGV.empty?
 end
 
 organization, *reponames = ARGV
-message = ''
+message = ""
 begin
   Organization.new(organization).repositories_with_pull_requests(reponames).each do |repository|
     pending_pull_requests = repository.pending_pull_requests
@@ -126,7 +145,10 @@ begin
 
     message << "\nPending requests in repository #{repository.name}:\n"
     pending_pull_requests.each do |pull_request|
-      message << "  - #{pull_request.title} (#{pull_request.pending_days} days)\n"
+      message << "  - "
+      pull_request.labels.each { |label| message << "[#{label["name"]}] " }
+
+      message << "#{pull_request.title} (#{pull_request.pending_days} days)\n"
       message << "    #{pull_request.html_url}\n\n"
     end
   end
