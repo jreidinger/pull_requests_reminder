@@ -41,30 +41,15 @@ class GitHubAPI
 
     open(url) do |json_file|
       pull_requests = JSON.load(json_file.gets).map { |pr_data|
-        issue = self.issue_details(repository, pr_data["number"])
-        PullRequest.new(issue)
+        PullRequest.new(pr_data)
       }
     end
 
     pull_requests.select do |pull_request|
+      next false if pull_request.draft
       days = (Time.now.monday? || Time.now.tuesday?) ? 5 : 3 # do not count weekend in pending time
       pull_request.pending_days > days
     end
-  end
-
-  def self.issue_details(repository, issue_id)
-    issue_data = nil
-    url = "https://api.github.com/repos/#{repository}/issues/#{issue_id}"
-
-    if self.token
-      url += "?access_token=#{self.token}"
-    end
-
-    open(url) do |json_file|
-      issue_data = JSON.load(json_file)
-    end
-
-    issue_data
   end
 end
 
